@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+    <title>Simple Chat App</title>
+    <style>
+        /* Add some basic styling */
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px dotted #ddd;
+        }
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(function () {
+            var socket = io();
+            $('form').submit(function() {
+                socket.emit('chat message', $('#input').val());
+                $('#input').val('');
+                return false;
+            });
+            socket.on('chat message', function(msg){
+                $('#messages').append($('<li>').text(msg));
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+        });
+    </script>
+</body>
+</html>

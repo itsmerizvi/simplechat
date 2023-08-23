@@ -11,20 +11,35 @@ let users = [];
 io.on('connection', (socket) => {
     console.log('a user connected');
 
-    socket.on('add user', (userData) => {
+
+socket.on('add user', (userData) => {
+    // Check if userData is valid and has a name
+    if (userData && userData.name) {
         const existingUser = users.find(user => user.name === userData.name);
         if (!existingUser) {
             users.push({
                 id: socket.id,
                 name: userData.name,
-                color: userData.color
+                color: userData.color,
+                timestamp: new Date().toISOString()  // Store the timestamp of joining
             });
 
             socket.userName = userData.name;  // Set the userName for this socket
             console.log('Emitting updated user list after user addition:', users);  // Debug log
             io.emit('users list', users);
+
+            // Notify all other users that this user has joined
+            socket.broadcast.emit('user joined', {
+                user: userData.name,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.log(`User with name ${userData.name} already exists.`);
         }
-    });
+    } else {
+        console.log("Invalid user data received:", userData);
+    }
+});
 
     socket.on('disconnect', () => {
         console.log('user disconnected');
@@ -61,6 +76,3 @@ app.get('/', (req, res) => {
 server.listen(3000, () => {
     console.log('listening on *:3000');
 });
-
-
-

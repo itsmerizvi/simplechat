@@ -72,7 +72,15 @@
             margin-bottom: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
-
+        #messages li {
+            list-style-type: none; /* Removes the default bullet points */
+            padding-left: 30px; /* Space for the icon */
+            background-image: url('path_to_default_user_icon.png'); /* Replace with your default user icon path */
+            background-repeat: no-repeat;
+            background-size: 20px 20px; /* Adjust size as needed */
+            background-position: 5px center; /* Adjust position as needed */
+        }
+        
         li {
             margin-bottom: 10px;
             padding: 10px;
@@ -304,7 +312,7 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <p id="modal-text"></p>
-            <input type="text" id="modal-input" placeholder="Enter your name...">
+            <input type="text" id="modal-input" placeholder="Enter your name..." autocomplete="off">
             <div class="button-center">
                 <button id="modal-submit">Submit</button>
             </div>
@@ -323,6 +331,7 @@
             function showNameModal() {
                 showModal("Please enter your name:");
                 const modalInput = document.getElementById('modal-input');
+                modalInput.value = ""; //reset the input field value
                 const modalSubmit = document.getElementById('modal-submit');
                 modalInput.style.display = "block";
                 modalSubmit.style.display = "block";
@@ -338,8 +347,14 @@
                 modalSubmit.onclick = function () {
                     userName = modalInput.value || "Guest";
                     userColor = getRandomColor();
+                    const timestamp = new Date().toISOString(); // Get the current timestamp
                     $('#user-name').text(`${userName}`);
                     socket.emit('add user', { name: userName, color: userColor });
+
+                    const currentTime = new Date().toLocaleTimeString();
+                    $('#messages').append($('<li>').html(`You joined the chat at ${currentTime}.`).css('background-color', userColor)); // Using a neutral background color for system messages
+                    window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom to show the new message
+
                     modalInput.style.display = "none";
                     modalSubmit.style.display = "none";
                     document.getElementById('modal').style.display = "none";
@@ -370,7 +385,7 @@
                 };
 
                 for (let command in emojiMap) {
-                    text = text.replace(new RegExp(command, 'g'), emojiMap[command]);
+                    text = text.replace(new RegExp("\\b" + command + "\\b", 'gi'), emojiMap[command]); // Added 'i' flag for case-insensitivity
                 }
 
                 return text;
@@ -384,17 +399,29 @@
             // Update online users list
             socket.on('users list', function (usersData) {
                 console.log("Received updated user list:", usersData);  // Add this line
-
                 $('#users-list').empty();
                 usersData.forEach(user => {
-                    const userElement = $('<li>').text(user.name).css('background-color', user.color);
-                    $('#users-list').append(userElement);
+                    const userElement = $('<li>').text(user.name + " (Joined at: " + new Date(user.timestamp).toLocaleTimeString() + ")").css('background-color', user.color);
+                        $('#users-list').append(userElement);
                 });
             });
 
+            socket.on('user joined', function(data) {
+                const joinMessage = `${data.user} has joined the chat at ${new Date(data.timestamp).toLocaleTimeString()}.`;
+                $('#messages').append($('<li>').html(joinMessage).css('background-color', 'black')); // Using a neutral background color for system messages
+                window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom to show the new message
+            });
+                        
             // Handle incoming messages
             socket.on('chat message', function (msg) {
-                $('#messages').append($('<li>').html(msg.user + ": " + msg.text).css('background-color', msg.color));
+                let listItem = $('<li>').html(msg.user + ": " + msg.text).css('background-color', msg.color);
+                
+                // If you have a custom icon for the user, set it here
+                if (msg.userIcon) {
+                    listItem.css('background-image', `user.png`);
+                }
+            
+                $('#messages').append(listItem);
                 window.scrollTo(0, document.body.scrollHeight);
             });
 
@@ -413,7 +440,6 @@
                 window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom to show the new message
             });
 
-
             // Handle form submission
             $('form').submit(function () {
                 const messageText = $('#input').val();
@@ -424,7 +450,7 @@
                     const messageContent = { user: userName, text: convertedText, color: userColor };
 
                     // Append the message to the sender's chat window immediately
-                    $('#messages').append($('<li>').html(messageContent.user + ": " + messageContent.text).css('background-color', messageContent.color));
+                    $('#messages').append($('<li>').html(messageContent.user + ": " + messageContent.text).css('background-color', userColor));
                     window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom to show the new message
                 }
 
@@ -437,7 +463,6 @@
             document.getElementById('clearBtn').addEventListener('click', function () {
                 $('#messages').empty();
             });
-
 
             function showModal(message) {
                 const modal = document.getElementById('modal');

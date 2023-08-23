@@ -128,6 +128,126 @@
             vertical-align: middle;
         }
 
+        /* The Modal (background) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        /* Modal Content */
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 30px; /* Uniform padding */
+            border-radius: 10px;
+            width: 40%;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            font-family: Arial, sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            position: relative;
+        }
+        
+
+        #modal-input {
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 80%;
+            margin: 20px auto;
+        }
+
+        #modal-input:hover {
+            border: 1px solid rgb(0, 0, 0);
+        }
+
+        #modal-submit {
+            padding: 10px 40px;
+            background-color: #25D366;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+
+        #modal-submit:hover {
+            background-color: #128C7E;
+        }
+
+        /* The Close Button */
+        .close-button {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            position: absolute; /* Take the button out of the normal flow */
+            top: 10px; /* Position it 10px from the top */
+            right: 10px; /* Position it 10px from the right */
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+        }
+
+        /* Modal Header */
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        /* Modal Body */
+        .modal-body {
+            margin-top: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        #clearBtn {
+            padding: 10px 20px;
+            background-color: #FF5733;
+            /* Different color for distinction */
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #clearBtn:hover {
+            background-color: #E43F00;
+            /* Darker shade on hover */
+        }
+
+        .button-center {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px; /* Add some space above the button */
+        }
+
+
         /* Responsive design for smaller screens */
         @media (max-width: 450px) {
             #chat-container {
@@ -143,7 +263,8 @@
 
             #side-panel,
             #command-panel {
-                display: none; /* Hide the panels on smaller screens */
+                display: none;
+                /* Hide the panels on smaller screens */
             }
         }
     </style>
@@ -160,6 +281,7 @@
         <form id="form" action="">
             <input id="input" autocomplete="off" placeholder="Type a message..." />
             <button type="submit">Send</button>
+            <button type="button" id="clearBtn">Clear</button>
         </form>
     </div>
 
@@ -169,11 +291,24 @@
             <li>smile - 😀</li>
             <li>lol - 😂</li>
             <li>wink - 😉</li>
-            <li>react - <img src='https://cdn4.iconfinder.com/data/icons/logos-3/600/React.js_logo-512.png' alt='react logo' class='emoji'></li>
+            <li>react - <img src='https://cdn4.iconfinder.com/data/icons/logos-3/600/React.js_logo-512.png'
+                    alt='react logo' class='emoji'></li>
             <li>hey - 👋🏽</li>
             <li>like - 🤍</li>
             <li>woah - 😮</li>
         </ul>
+    </div>
+
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="modal-text"></p>
+            <input type="text" id="modal-input" placeholder="Enter your name...">
+            <div class="button-center">
+                <button id="modal-submit">Submit</button>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -181,9 +316,35 @@
 
     <script>
         $(function () {
-            // Prompt user for their name
-            var userName = prompt("Please enter your name:", "Guest") || "Guest";
-            var userColor = getRandomColor();
+            var userName;
+            var userColor;
+            showNameModal();
+
+            function showNameModal() {
+                showModal("Please enter your name:");
+                const modalInput = document.getElementById('modal-input');
+                const modalSubmit = document.getElementById('modal-submit');
+                modalInput.style.display = "block";
+                modalSubmit.style.display = "block";
+
+                modalInput.focus(); // Automatically focus on the modal input
+
+                modalInput.addEventListener("keyup", function (event) {
+                    if (event.key === "Enter") {
+                        modalSubmit.click();
+                    }
+                });
+
+                modalSubmit.onclick = function () {
+                    userName = modalInput.value || "Guest";
+                    userColor = getRandomColor();
+                    $('#user-name').text(`${userName}`);
+                    socket.emit('add user', { name: userName, color: userColor });
+                    modalInput.style.display = "none";
+                    modalSubmit.style.display = "none";
+                    document.getElementById('modal').style.display = "none";
+                }
+            }
             $('#user-name').text(`${userName}`);
 
             // Generate a random color for the user
@@ -237,22 +398,68 @@
                 window.scrollTo(0, document.body.scrollHeight);
             });
 
+            socket.on('show help', function () {
+                showModal("Available slash commands: <br> /help : Show this help message<br>/clear : Clear the chat<br>/random : Generate a random number");
+            });
+
+            socket.on('clear chat', function () {
+                $('#messages').empty();
+            });
+
+            socket.on('show random', function (number) {
+                const messageContent = `Your random number is: ${number}`;
+                console.log("random number given");
+                $('#messages').append($('<li>').html(messageContent).css('background-color', userColor)); // Using a neutral background color for system messages
+                window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom to show the new message
+            });
+
+
             // Handle form submission
             $('form').submit(function () {
                 const messageText = $('#input').val();
                 const convertedText = convertToEmoji(messageText);
-                const messageContent = { user: userName, text: convertedText, color: userColor };
 
-                // Append the message to the sender's chat window immediately
-                $('#messages').append($('<li>').html(messageContent.user + ": " + messageContent.text).css('background-color', messageContent.color));
-                window.scrollTo(0, document.body.scrollHeight);
+                // Check if the message starts with a slash (indicating a command)
+                if (!messageText.startsWith('/')) {
+                    const messageContent = { user: userName, text: convertedText, color: userColor };
+
+                    // Append the message to the sender's chat window immediately
+                    $('#messages').append($('<li>').html(messageContent.user + ": " + messageContent.text).css('background-color', messageContent.color));
+                    window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom to show the new message
+                }
 
                 // Emit the message to the server
-                socket.emit('chat message', messageContent);
+                socket.emit('chat message', { user: userName, text: messageText, color: userColor });
                 $('#input').val('');
                 return false;
             });
+
+            document.getElementById('clearBtn').addEventListener('click', function () {
+                $('#messages').empty();
+            });
+
+
+            function showModal(message) {
+                const modal = document.getElementById('modal');
+                const span = document.getElementsByClassName("close-button")[0];
+                const modalText = document.getElementById('modal-text');
+
+                modalText.innerHTML = message;
+                modal.style.display = "block";
+
+                span.onclick = function () {
+                    modal.style.display = "none";
+                }
+
+                window.onclick = function (event) {
+                    if (event.target === modal) {
+                        modal.style.display = "none";
+                    }
+                }
+            }
+
         });
     </script>
 </body>
+
 </html>

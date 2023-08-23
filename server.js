@@ -36,8 +36,22 @@ io.on('connection', (socket) => {
 
     socket.on('chat message', (msg) => {
         console.log("Received message from client:", msg);
-        socket.broadcast.emit('chat message', msg); // Send to everyone except the sender
+    
+        // Check for slash commands
+        if (msg.text.startsWith('/')) {
+            if (msg.text === '/help') {
+                socket.emit('show help');  // Send only to the sender
+            } else if (msg.text === '/clear') {
+                socket.emit('clear chat');  // Send only to the sender
+            } else if (msg.text === '/random') {
+                const randomNumber = Math.floor(Math.random() * 100);  // Generate a random number between 0 and 99
+                socket.emit('show random', randomNumber);  // Send only to the sender
+            }
+        } else {
+            socket.broadcast.emit('chat message', msg); // Send to everyone except the sender
+        }
     });
+    
 });
 
 app.get('/', (req, res) => {
@@ -47,4 +61,6 @@ app.get('/', (req, res) => {
 server.listen(3000, () => {
     console.log('listening on *:3000');
 });
+
+
 

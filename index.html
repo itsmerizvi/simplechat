@@ -1,43 +1,256 @@
 <!doctype html>
 <html>
+
 <head>
-    <title>Simple Chat App</title>
+    <title>Chat App</title>
     <style>
-        /* Add some basic styling */
-        ul {
-            list-style-type: none;
+        /* General styles for the chat app */
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://images.unsplash.com/photo-1688728520734-7fecf8dc2836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=465&q=80');
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             margin: 0;
+            padding: 20px;
+            color: #fff;
+        }
+
+        /* Styles for the side panel showing online users */
+        #side-panel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #users-list {
+            list-style-type: none;
             padding: 0;
         }
+
+        #users-list li {
+            margin-bottom: 10px;
+            padding: 10px 5px 8px 20px;
+        }
+
+        /* Styles for the main chat container */
+        #chat-container {
+            max-width: 800px;
+            width: 100%;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #user-name {
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: black;
+            padding: 10px 30px 10px 30px;
+            background: rgba(77, 182, 252, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            font-size: larger;
+        }
+
+        #messages {
+            flex: 1;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
         li {
             margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px dotted #ddd;
+            padding: 10px;
+            border-radius: 10px;
+            line-height: 1.4;
+            max-width: 80%;
         }
-        #messages {
-            height: 300px;
-            overflow-y: scroll;
+
+        /* Styles for the message input and send button */
+        #form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #25D366;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #128C7E;
+        }
+
+        /* Styles for the command panel on the right */
+        #command-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100vh;
+            width: 180px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .emoji {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+        }
+
+        /* Responsive design for smaller screens */
+        @media (max-width: 450px) {
+            #chat-container {
+                height: 90vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #chat-container {
+                height: 90vh;
+                width: 90vw;
+            }
+
+            #side-panel,
+            #command-panel {
+                display: none; /* Hide the panels on smaller screens */
+            }
         }
     </style>
 </head>
+
 <body>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-        <input id="input" autocomplete="off" /><button>Send</button>
-    </form>
+    <div id="side-panel">
+        <h3>Online Users</h3>
+        <ul id="users-list"></ul>
+    </div>
+    <div id="chat-container">
+        <div id="user-name"></div>
+        <ul id="messages"></ul>
+        <form id="form" action="">
+            <input id="input" autocomplete="off" placeholder="Type a message..." />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <div id="command-panel">
+        <h3>Emojis</h3>
+        <ul>
+            <li>smile - 😀</li>
+            <li>lol - 😂</li>
+            <li>wink - 😉</li>
+            <li>react - <img src='https://cdn4.iconfinder.com/data/icons/logos-3/600/React.js_logo-512.png' alt='react logo' class='emoji'></li>
+            <li>hey - 👋🏽</li>
+            <li>like - 🤍</li>
+            <li>woah - 😮</li>
+        </ul>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script>
         $(function () {
+            // Prompt user for their name
+            var userName = prompt("Please enter your name:", "Guest") || "Guest";
+            var userColor = getRandomColor();
+            $('#user-name').text(`${userName}`);
+
+            // Generate a random color for the user
+            function getRandomColor() {
+                var letters = '0123456789ABCDEF';
+                var color = '#';
+                for (var i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            // Convert text commands to emojis or images
+            function convertToEmoji(text) {
+                const emojiMap = {
+                    "smile": "😀",
+                    "lol": "😂",
+                    "wink": "😉",
+                    "hey": "👋🏽",
+                    "like": "🤍",
+                    "woah": "😮",
+                    "react": "<img src='https://cdn4.iconfinder.com/data/icons/logos-3/600/React.js_logo-512.png' alt='react logo' class='emoji'>"
+                };
+
+                for (let command in emojiMap) {
+                    text = text.replace(new RegExp(command, 'g'), emojiMap[command]);
+                }
+
+                return text;
+            }
+
             var socket = io();
-            $('form').submit(function() {
-                socket.emit('chat message', $('#input').val());
+
+            // Emit user name to server
+            socket.emit('add user', { name: userName, color: userColor });
+
+            // Update online users list
+            socket.on('users list', function (usersData) {
+                console.log("Received updated user list:", usersData);  // Add this line
+
+                $('#users-list').empty();
+                usersData.forEach(user => {
+                    const userElement = $('<li>').text(user.name).css('background-color', user.color);
+                    $('#users-list').append(userElement);
+                });
+            });
+
+            // Handle incoming messages
+            socket.on('chat message', function (msg) {
+                $('#messages').append($('<li>').html(msg.user + ": " + msg.text).css('background-color', msg.color));
+                window.scrollTo(0, document.body.scrollHeight);
+            });
+
+            // Handle form submission
+            $('form').submit(function () {
+                const messageText = $('#input').val();
+                const convertedText = convertToEmoji(messageText);
+                const messageContent = { user: userName, text: convertedText, color: userColor };
+
+                // Append the message to the sender's chat window immediately
+                $('#messages').append($('<li>').html(messageContent.user + ": " + messageContent.text).css('background-color', messageContent.color));
+                window.scrollTo(0, document.body.scrollHeight);
+
+                // Emit the message to the server
+                socket.emit('chat message', messageContent);
                 $('#input').val('');
                 return false;
-            });
-            socket.on('chat message', function(msg){
-                $('#messages').append($('<li>').text(msg));
-                window.scrollTo(0, document.body.scrollHeight);
             });
         });
     </script>
